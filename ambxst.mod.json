@@ -1,0 +1,26 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Axenide/Ambxst/main/docs/mods/manifest.schema.json",
+  "manifestVersion": 1,
+  "id": "bien245.firefox-web-search",
+  "name": "Firefox Web Search",
+  "version": "1.0.0",
+  "description": "Integrates web search into the app launcher and opens domains directly in Firefox.",
+  "license": "MIT",
+  "author": "bien245",
+  "compatibility": {
+    "api": 1,
+    "ambxst": ">=1.3.8 <1.4.0"
+  },
+  "dependencies": [],
+  "conflicts": [],
+  "commands": ["firefox"],
+  "permissions": [
+    "Opens web searches and URLs in Firefox"
+  ],
+  "operations": [
+    {
+      "type": "patch",
+      "source": "patches/firefox-web-search.patch"
+    }
+  ]
+}

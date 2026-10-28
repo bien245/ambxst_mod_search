@@ -1,0 +1,120 @@
+--- a/modules/widgets/launcher/LauncherView.qml
++++ b/modules/widgets/launcher/LauncherView.qml
+@@ -167,10 +167,55 @@
+                         appComment: app.comment,
+                         appExecString: app.execString,
+                         appCategories: app.categories,
+-                        appRunInTerminal: app.runInTerminal
+-                    });
++                        appRunInTerminal: app.runInTerminal,
++                        isWebSearch: false});
+                 }
+                 appLauncher.loadedCount = endIndex;
++                    appLauncher.refreshWebSearchRow();
++            }
++        }
++
++
++        function openWebSearch() {
++            let query = searchText.trim();
++            if (!query)
++                return;
++
++            // Nếu nhập URL hoặc tên miền, mở thẳng trang web.
++            let isDomain = /^(localhost|(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,})(?::\d{1,5})?(?:[/?#][^\s]*)?$/i.test(query);
++            let url;
++
++            if (/^https?:\/\//i.test(query)) {
++                url = query;
++            } else if (isDomain) {
++                url = "https://" + query;
++            } else {
++                url = "https://www.google.com/search?q=" + encodeURIComponent(query);
++            }
++
++            globalOpenProcess.command = ["xdg-open", url];
++            globalOpenProcess.running = true;
++            Visibilities.setActiveModule("");
++        }
++
++        function refreshWebSearchRow() {
++            for (let i = appsModel.count - 1; i >= 0; i--) {
++                if (appsModel.get(i).isWebSearch)
++                    appsModel.remove(i);
++            }
++
++            let query = searchText.trim();
++            if (query.length > 0) {
++                appsModel.append({
++                    appId: "__ambxst_web_search__",
++                    appName: "Search web: " + query,
++                    appIcon: "firefox",
++                    appComment: "Search with Firefox's default search engine",
++                    appExecString: "",
++                    appCategories: [],
++                    appRunInTerminal: false,
++                    isWebSearch: true
++                });
+             }
+         }
+ 
+@@ -217,11 +262,12 @@
+                     appComment: app.comment,
+                     appExecString: app.execString,
+                     appCategories: app.categories,
+-                    appRunInTerminal: app.runInTerminal
+-                });
++                    appRunInTerminal: app.runInTerminal,
++                        isWebSearch: false});
+             }
+             
+             appLauncher.loadedCount = initialBatch;
++            appLauncher.refreshWebSearchRow();
+             
+             // Schedule rest if needed
+             if (appLauncher.loadedCount < newApps.length) {
+@@ -466,9 +512,15 @@
+                         if (appLauncher.selectedIndex >= 0 && appLauncher.selectedIndex < appsModel.count) {
+                             let selectedApp = appsModel.get(appLauncher.selectedIndex);
+                             if (selectedApp) {
+-                                appLauncher.executeApp(selectedApp.appId);
+-                                Visibilities.setActiveModule("");
++                                if (selectedApp.isWebSearch) {
++                                    appLauncher.openWebSearch();
++                                } else {
++                                    appLauncher.executeApp(selectedApp.appId);
++                                    Visibilities.setActiveModule("");
++                                }
+                             }
++                        } else if (appLauncher.searchText.trim().length > 0) {
++                            appLauncher.openWebSearch();
+                         }
+                     }
+                 }
+@@ -654,7 +706,7 @@
+                     required property var appCategories
+                     required property bool appRunInTerminal
+                     required property int index
+-
++                    required property bool isWebSearch
+                     property bool isExpanded: index === appLauncher.expandedItemIndex
+ 
+                     width: resultsList.width
+@@ -699,10 +751,14 @@
+                         onClicked: mouse => {
+                             if (mouse.button === Qt.LeftButton) {
+                                 if (!isExpanded) {
+-                                    appLauncher.executeApp(appId);
+-                                    Visibilities.setActiveModule("");
++                                    if (isWebSearch) {
++                                        appLauncher.openWebSearch();
++                                    } else {
++                                        appLauncher.executeApp(appId);
++                                        Visibilities.setActiveModule("");
++                                    }
+                                 }
+-                            } else if (mouse.button === Qt.RightButton) {
++                            } else if (mouse.button === Qt.RightButton && !isWebSearch) {
+                                 // Toggle expanded state
+                                 if (appLauncher.expandedItemIndex === index) {
+                                     appLauncher.expandedItemIndex = -1;
